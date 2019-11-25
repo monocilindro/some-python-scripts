@@ -14,7 +14,8 @@ shapefile_directory = '/home/theo/Desktop/Plot_Centers_Poly/individual'
 output_directory = '/home/theo/Desktop/'
 
 # this could be replaced with a lasinfo call
-'''ref = csv.DictReader(open(plot_reference_table))
+'''
+ref = csv.DictReader(open(plot_reference_table))
 for filename in os.listdir(las_directory):            
     if filename.endswith(".las"):
         las_file = las_directory + "/" + filename
@@ -30,9 +31,30 @@ for filename in os.listdir(las_directory):
             wgs_flag = "-wgs84"
         #print(plot_id + " " + wgs + " " + utm) # test to see if parsing works
         os.path.isdir(temp_directory)
+'''
+for filename in os.listdir(las_directory):
+    if filename.endswith(".las"):
+        las_file = las_directory + "/" + filename
+        wgs = "0"
+        utm = "0"
+        if os.path.exists(temp_directory + "/temp_info.txt"):
+            os.remove(temp_directory + "/temp_info.txt")
+        subprocess.call(["lasinfo", "-i", las_file, "-o", "temp_info.txt", "-odir", temp_directory])
+        with open(temp_directory + "/temp_info.txt") as f:
+            for line in f:
+                if "GTCitationGeoKey" in line:
+                    if "WGS 84" in line:
+                        wgs = "84"
+                    if "UTM zone 10N" in line:
+                        utm = "10n"
+                    if "UTM zone 11N" in line:
+                        utm = "11n"
+            if wgs != 0:
+                wgs_flag = "-wgs84"
 # Reproject from UTM to CA Albers
         subprocess.call(["las2las", "-i", las_file, "-utm", utm, wgs_flag, "-target_epsg", "3310", "-odir", temp_directory, "-odix", "_reproject", "-cpu64"])
-
+        f.close()
+'''
 # Denoise
 for filename in os.listdir(temp_directory):
     if filename.endswith("reproject.las"):
@@ -54,7 +76,7 @@ for filename in os.listdir(temp_directory):
 for filename in os.listdir(temp_directory):
     if filename.endswith("height.las"):
         las_file = temp_directory + "/" + filename
-        subprocess.call(["lasclassify", "-i", las_file, "-ground_offset", "0.2", "-odir", temp_directory, "-odix", "_classified", "-cpu64"])'''
+        subprocess.call(["lasclassify", "-i", las_file, "-ground_offset", "0.2", "-odir", temp_directory, "-odix", "_classified", "-cpu64"])
 
 # Clip to plot
 for filename in os.listdir(temp_directory):
@@ -64,4 +86,4 @@ for filename in os.listdir(temp_directory):
         shapefile = shapefile_directory + "/Plot_Centers_Poly_Plot_ID_" + plot_id + ".shp"
         print("this is a sample shapefile name " + shapefile)
         subprocess.call(["lasclip", "-i", las_file, "-poly", shapefile, "-odir", output_directory, "-odix", "_clipped", "-cpu64"])
-        
+'''
