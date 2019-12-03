@@ -5,15 +5,19 @@ import csv
 # add positional arguments
 # modify text parsing to account for empty height slices
 
-directory = '/home/theo/Desktop/ferguson/height_normalized/prefire_als_height_norm'
+directory = '/home/theo/Desktop/ferguson/height_normalized/prefire_tls_height_norm'
 plot_reference_table = '/home/theo/Desktop/height_plot_stats.csv'
 for filename in os.listdir(directory):
     if filename.endswith(".las"):
         i = 0
         while i < 100:
-            j = i + 2
+            j = i + 10
+            total_points = 0
+            ground_points = 0
+            vegetation_points = 0
+            density = 0
             las_file = directory + '/' + filename
-            subprocess.call(["lasinfo", "-i", las_file, "-o", "temp_info.txt", "-odir", directory, "-compute_density", "-keep_z", str(i), str(j)])
+            subprocess.call(["lasinfo", "-i", las_file, "-o", "temp_info.txt", "-odir", directory, "-compute_density", "-keep_z", str(i), str(j), "-no_header"])
             with open(directory + "/temp_info.txt") as f:
                 plot_id=filename[0:4]
                 if 'E1' in filename:
@@ -21,7 +25,7 @@ for filename in os.listdir(directory):
                 if 'E2' in filename:
                     plot_id=plot_id + 'E2'
                 for x in f:
-                    if "number of point records:" in x:
+                    if "number of point records" in x:
                         total_points = x
                     if "ground" in x:
                         ground_points = x
