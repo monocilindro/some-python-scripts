@@ -84,7 +84,7 @@ for filename in os.listdir(temp_directory + '/tiles'):
 # Denoise
 # all this should be one function
 print("denoise")
-for filename in os.listdir(temp_directory + 'tiles'):
+for filename in os.listdir(temp_directory + '/tiles'):
     #if filename.endswith("plumas_tile.las"):
     #temporarily separate the tiles and flightlines until I figure out a valid way to append a name to tiles
     if filename.endswith(".las"):
