@@ -139,7 +139,7 @@ for filename in os.listdir(temp_directory):
         subprocess.call(["singularity", "exec", lastools_singularity, "lastile", "-i", las_file, "-files_are_flightlines", "-rescale", "0.01", "0.01", "0.01", "-tile_size", "1000", "-buffer", "100", "-odir", temp_directory + "/tiles", "-odix", "_plumas_tile"])
 
 processes = []
-for tile in os.listdir(temp_directory): 
+for tile in os.listdir(temp_directory + "/tiles"): 
     if tile.endswith("_tile.las"):
         processes.append(Process(target=tile_processing, args=(tile, )))
     else:
