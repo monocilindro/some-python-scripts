@@ -11,10 +11,10 @@ from multiprocessing import Process
 #las_directory = '/data/gpfs/assoc/gears/shared_data/rsdata/lidar_airborne/L1B/vendor/ASO/Plumas/2018/corrected_flightlines/correction'
 
 
-las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/small_flightlines'
+las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/tahoe_flightlines'
 shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots'
-temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_temp'
-output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas'
+temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/tahoe_temp'
+output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/tahoe_multiprocess'
 lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singularity_gears-lastools.sif'
 
 def flightlines_to_tiles(flightline):
@@ -65,7 +65,7 @@ def tile_processing(tile):
 # Get height
     print("height")
     las_file = temp_directory + "/" + tile[:-4] + "_ground.las"
-    subprocess.call(["lasheight", "-i", las_file, "-drop_below", "0", "-drop_above", "100", "-odir", temp_directory, "-odix", "_height", "-cpu64"])
+    subprocess.call(["singularity", "exec", lastools_singularity, "lasheight", "-i", las_file, "-drop_below", "0", "-drop_above", "100", "-odir", temp_directory, "-odix", "_height", "-cpu64"])
 
 # Classify remaining points
     print("classify")
@@ -82,7 +82,7 @@ def tile_processing(tile):
     las_file = temp_directory + "/" + tile[:-4] + "_buffered.las"
     plot_id=filename[0:4] # multiple scans don't matter for clipping to plot
     shapefile = shapefile_directory + "/Plot_Centers_Poly_Plot_ID_" + plot_id + ".shp"
-    subprocess.call(["lasclip", "-i", las_file, "-poly", shapefile, "-odir", output_directory, "-odix", plot_id, "-cpu64"])
+    subprocess.call(["singularity", "exec", lastools_singularity, "lasclip", "-i", las_file, "-poly", shapefile, "-odir", output_directory, "-odix", plot_id, "-cpu64"])
     
 # -------------------
 
@@ -117,6 +117,7 @@ for filename in os.listdir(las_directory):
         las_file = las_directory + "/" + filename
         subprocess.call(["singularity", "exec", lastools_singularity, "lasindex", "-i", filename, "-cpu64", "-dont_reindex"])
 
+# multiprocess flightlines
 processes = []
 for flightline in os.listdir(las_directory):
     if flightline.endswith(".las"):
@@ -129,7 +130,7 @@ for p in processes:
 for p in processes: 
     p.join() 
 
-# multiprocess flightlines
+
 
 # build tiles
 print("tiles")
@@ -138,9 +139,11 @@ for filename in os.listdir(temp_directory):
         las_file = temp_directory + "/" + filename
         subprocess.call(["singularity", "exec", lastools_singularity, "lastile", "-i", las_file, "-files_are_flightlines", "-rescale", "0.01", "0.01", "0.01", "-tile_size", "1000", "-buffer", "100", "-odir", temp_directory + "/tiles", "-odix", "_plumas_tile"])
 
+
+# multiprocess tiles
 processes = []
 for tile in os.listdir(temp_directory + "/tiles"): 
-    if tile.endswith("_tile.las"):
+    if tile.endswith(".las"):
         processes.append(Process(target=tile_processing, args=(tile, )))
     else:
         continue
@@ -149,44 +152,5 @@ for p in processes:
     p.start()
 for p in processes: 
     p.join() 
-
-# multiprocess tiles
-
-'''
-
-# a lasindex should go here
-os.chdir(las_directory)
-print("indexing flightlines")
-for filename in os.listdir(las_directory):
-    if filename.endswith(".las"):
-        las_file = las_directory + "/" + filename
-        subprocess.call(["singularity", "exec", lastools_singularity, "lasindex", "-i", filename, "-cpu64"])
-
-
-# call flightline function
-for filename in os.listdir(las_directory):
-    flightlines_to_tiles(filename)
-
-
-divide_inputs(las_directory, ".las", 2)
-
-
-
-# Build tiles
-
-print("tiles")
-for filename in os.listdir(temp_directory):
-    if filename.endswith("14.las"):
-        las_file = temp_directory + "/" + filename
-        subprocess.call(["wine", "/home/theo/Downloads/lastile.exe", "-i", las_file, "-files_are_flightlines", "-rescale", "0.01", "0.01", "0.01", "-tile_size", "1000", "-buffer", "100", "-odir", temp_directory, "-odix", "_plumas_tile"])
-
-
-# Call tile processing function
-
-for filename in os.listdir(temp_directory):
-    if filename.endswith("_tile.las"):
-        tile_processing(filename)
-'''
-
 
 
