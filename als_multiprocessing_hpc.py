@@ -6,10 +6,7 @@
 import os
 import subprocess
 import csv
-from multiprocessing import Process
-
-#las_directory = '/data/gpfs/assoc/gears/shared_data/rsdata/lidar_airborne/L1B/vendor/ASO/Plumas/2018/corrected_flightlines/correction'
-
+from multiprocessing import Pool, Process, Queue
 
 las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/tahoe_flightlines'
 shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots'
@@ -20,14 +17,14 @@ lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singulari
 def flightlines_to_tiles(flightline):
     # Get projection info
     print("projection")
-    if flightline.endswith(".las"):
-        las_file = las_directory + "/" + flightline
-        wgs = "0"
-        utm = "0"
-        if os.path.exists(temp_directory + "/temp_info.txt"):
-            os.remove(temp_directory + "/temp_info.txt")
-    subprocess.call(["singularity", "exec", lastools_singularity, "lasinfo", "-i", las_file, "-o", "temp_info.txt", "-odir", temp_directory])
-    with open(temp_directory + "/temp_info.txt") as f:
+    las_file = flightline
+    wgs = "0"
+    utm = "0"
+    text_name = las_file[:-4] + "_info.txt"
+    if os.path.exists(temp_directory + "/" + text_name):
+        os.remove(temp_directory + "/" + text_name)
+    subprocess.call(["singularity", "exec", lastools_singularity, "lasinfo", "-i", las_file, "-o", text_name, "-odir", temp_directory])
+    with open(temp_directory + "/" + text_name) as f:
         for line in f:
             if "GTCitationGeoKey" in line:
                 if "WGS 84" in line:
@@ -103,9 +100,29 @@ def divide_inputs(input_folder, ending = ".las", num_cpus=32):
                 f.write(line + "\n")
         f.close()
 
+# -------------------
+def flight_queue(q, overwrite = False):
+    while not q.empty():
+        try:
+            las_file = q.get()
+            flightlines_to_tiles(las_file)
+        except ValueError as val_error:
+            print(val_error)
+        except Exception as error:
+            print(error)
 
 
 # -------------------
+
+def tile_queue(q, overwrite = False):
+    while not q.empty():
+        try:
+            las_file = q.get()
+            tile_processing(las_file)
+        except ValueError as val_error:
+            print(val_error)
+        except Exception as error:
+            print(error)
 
 # -------------------
 
@@ -118,18 +135,17 @@ for filename in os.listdir(las_directory):
         subprocess.call(["singularity", "exec", lastools_singularity, "lasindex", "-i", filename, "-cpu64", "-dont_reindex"])
 
 # multiprocess flightlines
-processes = []
-for flightline in os.listdir(las_directory):
-    if flightline.endswith(".las"):
-        processes.append(Process(target=flightlines_to_tiles, args=(flightline, )))
-    else:
-        continue
 
-for p in processes:
-    p.start()
-for p in processes: 
-    p.join() 
+flightlines = Queue()
+for i in os.listdir(las_directory):
+    if i.endswith(".las"):
+        flightlines.put(i)
+#flightlines.put(os.listdir(las_directory))
+#flightlines = os.listdir(las_directory)
 
+workers = Pool(32, flight_queue,(flightlines,))
+workers.close()
+workers.join()
 
 
 # build tiles
@@ -139,18 +155,11 @@ for filename in os.listdir(temp_directory):
         las_file = temp_directory + "/" + filename
         subprocess.call(["singularity", "exec", lastools_singularity, "lastile", "-i", las_file, "-files_are_flightlines", "-rescale", "0.01", "0.01", "0.01", "-tile_size", "1000", "-buffer", "100", "-odir", temp_directory + "/tiles", "-odix", "_plumas_tile"])
 
+tiles = Queue()
+for i in os.listdir(temp_directory + "/tiles"):
+    if i.endswith(".las"):
+        flightlines.put(i)
 
-# multiprocess tiles
-processes = []
-for tile in os.listdir(temp_directory + "/tiles"): 
-    if tile.endswith(".las"):
-        processes.append(Process(target=tile_processing, args=(tile, )))
-    else:
-        continue
-
-for p in processes: 
-    p.start()
-for p in processes: 
-    p.join() 
-
-
+workers = Pool(32, tile_queue,(tiles,))
+workers.close()
+workers.join()
