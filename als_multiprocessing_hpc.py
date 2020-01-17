@@ -50,7 +50,7 @@ def flightlines_to_tiles(flightline):
 def tile_processing(tile):
 # Denoise
     print("denoise")
-    las_file = temp_directory + "/tiles/" + tile[:-4] + ".las"
+    las_file = temp_directory + "/tiles/" + tile
     print(las_file)
     subprocess.call(["singularity", "exec", lastools_singularity, "lasnoise", "-i", las_file, "-remove_noise", "-odir", temp_directory, "-odix", "_denoised", "-cpu64"])
 
@@ -126,6 +126,7 @@ def tile_queue(q, overwrite = False):
 
 # -------------------
 
+
 # lasindex flightlines
 os.chdir(las_directory)
 print("indexing flightlines")
@@ -155,10 +156,11 @@ for filename in os.listdir(temp_directory):
         las_file = temp_directory + "/" + filename
         subprocess.call(["singularity", "exec", lastools_singularity, "lastile", "-i", las_file, "-files_are_flightlines", "-rescale", "0.01", "0.01", "0.01", "-tile_size", "1000", "-buffer", "100", "-odir", temp_directory + "/tiles", "-odix", "_plumas_tile"])
 
+
 tiles = Queue()
 for i in os.listdir(temp_directory + "/tiles"):
     if i.endswith(".las"):
-        flightlines.put(i)
+        tiles.put(i)
 
 workers = Pool(32, tile_queue,(tiles,))
 workers.close()
