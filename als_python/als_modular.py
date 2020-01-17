@@ -1,0 +1,67 @@
+import os
+import subprocess
+from multiprocessing import Pool, Process, Queue
+from process_queues import flight_queue, tile_queue
+from build_tiles import build_tiles
+
+# todos
+# make clip to plot function
+# make dtm function
+# make lasboundary use_bb for troubleshooting
+
+# add filepaths here
+las_directory = '/home/theo/Desktop/small_flightlines'
+shapefile_directory = '/home/theo/Desktop/individual_plots'
+temp_directory = '/home/theo/Desktop/temp'
+output_directory = '/home/theo/Desktop/test_results'
+lastools_singularity = '/home/theo/Desktop/gears-singularity_gears-lastools.sif'
+num_workers=16
+'''
+las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_flightlines'
+shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots'
+temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_temp'
+output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas'
+lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singularity_gears-lastools.sif'
+num_workers = 32
+'''
+'''
+# make temp_directory if it doesn't exist
+if not os.path.exists(temp_directory + "/flightlines"):
+    os.makedirs(temp_directory + "/flightlines")
+
+# copy original flightlines to temp_directory for processing
+for i in os.listdir(las_directory):
+    subprocess.call(["cp", las_directory + "/" + i, temp_directory + "/flightlines"])
+    print('copied ' + i)
+
+# lasindex flightlines
+os.chdir(las_directory)
+print("indexing flightlines")
+for filename in os.listdir(temp_directory + "/flightlines"):
+    if filename.endswith(".las"):
+        las_file = las_directory + "/" + filename
+        subprocess.call(["singularity", "exec", lastools_singularity, "lasindex", "-i", filename, "-cpu64", "-dont_reindex"])
+
+flightlines = Queue()
+for i in os.listdir(las_directory):
+    if i.endswith(".las"):
+        flightlines.put(i)
+#flightlines.put(os.listdir(las_directory))
+#flightlines = os.listdir(las_directory)
+
+workers = Pool(num_workers, flight_queue,(flightlines, temp_directory, lastools_singularity))
+workers.close()
+workers.join()
+
+
+#build tiles
+build_tiles(temp_directory, "test_tiles", lastools_singularity)
+'''
+tiles = Queue()
+for i in os.listdir(temp_directory + "/tiles/raw"):
+    if i.endswith(".las"):
+        tiles.put(i)
+
+workers = Pool(num_workers, tile_queue,(tiles, temp_directory + "/tiles", output_directory, lastools_singularity))
+workers.close()
+workers.join()
