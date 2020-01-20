@@ -17,6 +17,7 @@ shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots
 temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_temp'
 output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas'
 lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singularity_gears-lastools.sif'
+gdal_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gdal_singularity.sif'
 num_workers = 32
 
 # make temp_directory if it doesn't exist
