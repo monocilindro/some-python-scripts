@@ -1,8 +1,9 @@
 import os
 import subprocess
 from multiprocessing import Pool, Process, Queue
-from process_queues import flight_queue, tile_queue
+from process_queues import flight_queue, tile_queue, dsm_queue
 from build_tiles import build_tiles
+from dsm_processing import make_region_dsm
 
 # todos
 # make clip to plot function
@@ -10,21 +11,14 @@ from build_tiles import build_tiles
 # make lasboundary use_bb for troubleshooting
 
 # add filepaths here
-las_directory = '/home/theo/Desktop/small_flightlines'
-shapefile_directory = '/home/theo/Desktop/individual_plots'
-temp_directory = '/home/theo/Desktop/temp'
-output_directory = '/home/theo/Desktop/test_results'
-lastools_singularity = '/home/theo/Desktop/gears-singularity_gears-lastools.sif'
-num_workers=16
-'''
+
 las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_flightlines'
 shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots'
 temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_temp'
 output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas'
 lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singularity_gears-lastools.sif'
 num_workers = 32
-'''
-'''
+
 # make temp_directory if it doesn't exist
 if not os.path.exists(temp_directory + "/flightlines"):
     os.makedirs(temp_directory + "/flightlines")
@@ -56,7 +50,7 @@ workers.join()
 
 #build tiles
 build_tiles(temp_directory, "test_tiles", lastools_singularity)
-'''
+
 tiles = Queue()
 for i in os.listdir(temp_directory + "/tiles/raw"):
     if i.endswith(".las"):
@@ -65,3 +59,19 @@ for i in os.listdir(temp_directory + "/tiles/raw"):
 workers = Pool(num_workers, tile_queue,(tiles, temp_directory + "/tiles", output_directory, lastools_singularity))
 workers.close()
 workers.join()
+
+
+# make DSMs
+if not os.path.exists(output_directory + "/buffered_DSM"):
+    os.makedirs(output_directory + "/buffered_DSM")
+
+buffered_tiles = Queue()
+for i in os.listdir(output_directory + "/buffered"):
+    if i.endswith(".las"):
+        buffered_tiles.put(output_directory + "/buffered/" + i)
+
+workers = Pool(num_workers, dsm_queue,(buffered_tiles, output_directory + "/buffered_DSM", lastools_singularity))
+workers.close()
+workers.join()
+
+make_region_dsm(output_directory + "/buffered_DSM", output_directory, "Plumas_sample", gdal_singularity)
