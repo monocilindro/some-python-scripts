@@ -13,12 +13,11 @@ from dsm_processing import make_input_list, make_region_blast_dsm
 
 # add filepaths here
 
-las_directory = '/data/gpfs/assoc/gears/scratch/thartsook/four_plumas_flightlines'
+las_directory = '/data/gpfs/assoc/gears/shared_data/rsdata/lidar_airborne/L1B/v001_flightline_corrections/walkerfire_20191007/las'
 shapefile_directory = '/data/gpfs/assoc/gears/scratch/thartsook/individual_plots'
-temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas_temp'
-output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/plumas'
+temp_directory = '/data/gpfs/assoc/gears/scratch/thartsook/walker_temp'
+output_directory = '/data/gpfs/assoc/gears/scratch/thartsook/walker'
 lastools_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gears-singularity_gears-lastools.sif'
-gdal_singularity = '/data/gpfs/assoc/gears/scratch/thartsook/gdal_singularity.sif'
 num_workers = 32
 
 
@@ -33,19 +32,16 @@ for i in os.listdir(las_directory):
 
 
 # lasindex flightlines
-os.chdir(las_directory)
 print("indexing flightlines")
 for filename in os.listdir(temp_directory + "/flightlines"):
     if filename.endswith(".las"):
-        las_file = las_directory + "/" + filename
+        las_file = temp_directory + "/flightlines/" + filename
         subprocess.call(["singularity", "exec", lastools_singularity, "lasindex", "-i", filename, "-cpu64"])
 
 flightlines = Queue()
-for i in os.listdir(las_directory):
+for i in os.listdir(temp_directory + "/flightlines"):
     if i.endswith(".las"):
         flightlines.put(i)
-#flightlines.put(os.listdir(las_directory))
-#flightlines = os.listdir(las_directory)
 
 workers = Pool(num_workers, flight_queue,(flightlines, temp_directory, lastools_singularity))
 workers.close()
@@ -53,12 +49,6 @@ workers.join()
 
 # build tiles
 build_tiles(temp_directory + "/1_4", lastools_singularity)
-
-# this was not the correct way to solve the problem. Can't be parallelized with worker queue.
-'''
-#build tiles
-build_tiles_bad(temp_directory, "test_tiles", lastools_singularity)
-'''
 
 tiles = Queue()
 for i in os.listdir(temp_directory + "/tiles/raw"):
