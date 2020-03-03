@@ -1,6 +1,6 @@
 import os
 
-def divide_inputs(input_folder, ending = ".las", num_cpus=32):
+def divide_inputs(input_folder, ending=".las", num_cpus=32):
     inputs = []
     for filename in os.listdir(input_folder):
         if filename.endswith(ending):

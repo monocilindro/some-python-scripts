@@ -32,12 +32,3 @@ def tile_processing(tile, temp_directory, output_directory, lastools_singularity
             os.makedirs(output_directory + "/seamless")
     las_file = output_directory + "/buffered/" + tile[:-4] + "_denoised_ground_height_buffered.las"
     subprocess.call(["singularity", "exec", lastools_singularity, "lastile", "-i", las_file, "-remove_buffer", "-odir", output_directory + "/seamless", "-odix", "_seamless", "-cpu64"])
-
-'''
-    # Clip to plot
-    las_file = output_directory + "/" + tile[:-4] + "_denoised_ground_height_buffered.las"
-    plot_id=filename[0:4] # multiple scans don't matter for clipping to plot
-    shapefile = shapefile_directory + "/Plot_Centers_Poly_Plot_ID_" + plot_id + ".shp"
-    subprocess.call(["singularity", "exec", lastools_singularity, "lasclip", "-i", las_file, "-poly", shapefile, "-odir", output_directory, "-odix", plot_id, "-cpu64"])
-'''
-# Clip to plot should be its own function

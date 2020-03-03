@@ -1,33 +1,32 @@
 import os
 import subprocess
 
-# add copy from source to temp_flightlines
+# add copy from source to temp_flightlines (this has been handled in the main function currently
+# consider combining reproject and 1.4 step
 
 def flightlines_to_tiles(flightline, temp_directory, lastools_singularity):
     # Get projection info
-    las_file = flightline
+    las_file = temp_directory +  "/flightlines/" + flightline
     wgs = "0"
     utm = "0"
     text_name = las_file[:-4] + "_info.txt"
-    if os.path.exists(temp_directory + "/" + text_name):
-        os.remove(temp_directory + "/" + text_name)
-    subprocess.call(["singularity", "exec", lastools_singularity, "lasinfo", "-i", las_file, "-o", text_name, "-odir", temp_directory + "/flightlines"])
-    with open(temp_directory + "/flightlines/" + text_name) as f:
+    if os.path.exists(text_name):
+        os.remove(text_name)
+    subprocess.call(["singularity", "exec", lastools_singularity, "lasinfo", "-i", las_file, "-o", text_name])
+    with open(text_name) as f:
         for line in f:
-            if "GTCitationGeoKey" in line:
-                if "WGS 84" in line:
-                    wgs = "84"
-                if "UTM zone 10N" in line:
+            if "key 3072" in line:
+                if "WGS 84" in line and "UTM 10N" in line:
+                    wgs = "-wgs84"
                     utm = "10n"
-                if "UTM zone 11N" in line:
+                if "WGS 84" in line and "UTM 11N" in line:
+                    wgs = "-wgs84"
                     utm = "11n"
-            if wgs != 0:
-                wgs_flag = "-wgs84"
 
         # Reproject from UTM to CA Albers
         if not os.path.exists(temp_directory + "/reproject"):
             os.makedirs(temp_directory + "/reproject")
-        subprocess.call(["singularity", "exec", lastools_singularity, "las2las", "-i", las_file, "-utm", utm, wgs_flag, "-target_epsg", "3310", "-odir", temp_directory + "/reproject", "-odix", "_reproject", "-cpu64"])
+        subprocess.call(["singularity", "exec", lastools_singularity, "las2las", "-i", las_file, "-utm", utm, wgs, "-target_epsg", "3310", "-odir", temp_directory + "/reproject", "-odix", "_reproject", "-cpu64"])
         f.close()
 
 
