@@ -30,7 +30,6 @@ def create_plot_coordinates_list(plot_directory, temp_directory):
                         bbox.append(max_coord[4])
                         bbox.append(max_coord[5])
                 plot_coordinates.append(bbox)
-                print(bbox)
             f.close()
     with open(temp_directory + '/plot_coordinates.txt', 'w') as f:
         for i in plot_coordinates:
@@ -39,7 +38,7 @@ def create_plot_coordinates_list(plot_directory, temp_directory):
 
 
 # create a .txt file with tile coordinates (or anything you want to clip)
-def create_tile_coordinates(tile_directory, temp_directory):
+def create_tile_coordinates_list(tile_directory, temp_directory):
     tile_coordinates = []
     for tile in os.listdir(tile_directory):
         if tile.endswith(".las"):
@@ -94,7 +93,7 @@ try:
         for line in f:
             tile_coordinates.append(line)
 except FileNotFoundError:
-        create_tile_coordinates(tile_directory, temp_directory)
+        create_tile_coordinates_list(tile_directory, temp_directory)
 
 plot_list = temp_directory + '/plot_coordinates.txt'
 
@@ -103,7 +102,7 @@ try:
         for line in f:
             plot_coordinates.append(line)
 except FileNotFoundError:
-        create_plot_coordinates(plot_directory, temp_directory)
+        create_plot_coordinates_list(plot_directory, temp_directory)
 
 for i in plot_coordinates:
     # Set up min and max plot coordinates
