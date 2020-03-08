@@ -85,7 +85,6 @@ def check_coordinates(pxn, pxx, pyn, pyx, txn, txx, tyn, tyx):
 # This is the main processing step
 
 tile_list = temp_directory + '/tile_coordinates.txt'
-
 tile_coordinates = []
 
 try:
@@ -96,6 +95,7 @@ except FileNotFoundError:
         create_tile_coordinates_list(tile_directory, temp_directory)
 
 plot_list = temp_directory + '/plot_coordinates.txt'
+plot_coordinates = []
 
 try:
     with open(plot_list, 'r') as f:
